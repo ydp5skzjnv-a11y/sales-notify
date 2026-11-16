@@ -21,6 +21,6 @@ export function makeOrder(s) {
  const n=s.order;
  const title=`Ordine #${n} · DEMO`;
  const body=`${amount} €, ${count} ${count===1?'articolo':'articoli'} da ${s.sourceName} · ${s.storeName} (simulato)`;
- return {title,body,icon:'/icons/icon-192.png',badge:'/icons/badge.png',tag:`demo-sale-${n}`,data:{url:'/'},timestamp:Date.now()};
+ return {title,body,icon:'/.netlify/functions/logo',badge:'/icons/badge.png',tag:`demo-sale-${n}`,data:{url:'/'},timestamp:Date.now()};
 }
 export async function send(subscription,payload) {configurePush();await webpush.sendNotification(subscription,JSON.stringify(payload),{TTL:3600,urgency:'normal'});}

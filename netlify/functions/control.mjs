@@ -1,3 +1,4 @@
+import {tick} from './_scheduler.mjs';
 import { authorized, ready, json, settings, store, makeOrder, send } from './_common.mjs';
 export default async (req) => {
  if(req.method !== 'POST')return json({error:'Metodo non consentito'},405);
@@ -6,6 +7,16 @@ export default async (req) => {
  try {
   const b=await req.json();const action=b.action;const db=store();
   if(action==='public-key')return json({publicKey:process.env.VAPID_PUBLIC_KEY});
+  if(action==='diagnose') {const last=await db.get('last-scheduler-result',{type:'json'});const s=settings(await db.get('settings',{type:'json'}));return json({running:s.running,nextAt:s.nextAt,last});}
+  if(action==='run-now'){return json(await tick(true));}
+  if(action==='upload-logo') {
+    if(!/^data:image\/(png|jpeg|webp);base64,/.test(b.image||''))return json({error:'Usa un logo PNG, JPG o WebP'},400);
+    const type=b.image.slice(5,b.image.indexOf(';'));const raw=b.image.split(',')[1];
+    if(raw.length>500000)return json({error:'Logo troppo grande: massimo circa 350 KB'},400);
+    const bytes=Uint8Array.from(atob(raw),c=>c.charCodeAt(0));
+    await db.set('custom-logo',bytes.buffer,{metadata:{contentType:type}});
+    return json({ok:true,url:'/.netlify/functions/logo?v='+Date.now()});
+  }
   if(action==='status') {
    const s=await db.get('settings',{type:'json'});
    const sub=await db.get('subscription',{type:'json'});
