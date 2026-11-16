@@ -1,0 +1,40 @@
+SALES DEMO — INSTALLAZIONE SENZA GITHUB
+=======================================
+
+Questa versione usa SOLO Netlify per hosting, Netlify Functions, Netlify Blobs e scheduler.
+Occorre un computer Windows/Mac/Linux con Node.js installato per il primo deploy.
+NON basta trascinare il file ZIP nel pannello Netlify: per pubblicare le funzioni push usa Netlify CLI.
+
+PASSO 1 — Scarica e scompatta lo ZIP; apri il terminale nella cartella sales-prank-netlify.
+PASSO 2 — Installa Node.js (versione LTS) dal sito ufficiale nodejs.org, se necessario.
+PASSO 3 — Esegui in sequenza:
+   npm install
+   npx netlify login
+   npx netlify deploy --prod
+
+Durante il comando di deploy seleziona "Create & configure a new project" se ancora non esiste.
+La pubblicazione include anche netlify/functions e la schedulazione automatica.
+
+PASSO 4 — Nel pannello del progetto su app.netlify.com, vai in Environment variables e configura:
+  APP_PIN
+  VAPID_PUBLIC_KEY
+  VAPID_PRIVATE_KEY
+  VAPID_SUBJECT
+Usa i valori contenuti nel file CHIAVI_PRIVATE_SALES_DEMO.txt fornito separatamente.
+Non pubblicare MAI questo file o i segreti nell'area pubblica del sito.
+
+PASSO 5 — Esegui nuovamente:
+   npx netlify deploy --prod
+
+PASSO 6 — Su iPhone: apri con Safari l'URL https://...netlify.app, Condividi > Aggiungi a schermata Home.
+Apri l'icona aggiunta, inserisci APP_PIN e collega. Abilita push e autorizza le notifiche.
+Premi "Test push": deve arrivare una notifica vera sul dispositivo.
+Salva e avvia l'invio automatico: il server Netlify gestisce le push mentre l'app è chiusa.
+
+NOTE
+- La app simula vendite e mostra DEMO, non si collega a Shopify.
+- Lo scheduler Netlify gira ogni minuto, gli invii possono arrivare in ritardo.
+- Il suono, la grafica e il raggruppamento delle notifiche sono controllati da iOS.
+- Per modifiche future basta ripetere il comando npx netlify deploy --prod dalla cartella aggiornata.
+- Se lavori SOLO da iPhone e senza terminale, il deploy statico manuale non basta per le push server automatiche.
+- Si tratta di un progetto predisposto, non collaudato su un iPhone reale.
