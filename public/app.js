@@ -1,4 +1,5 @@
 const $=id=>document.getElementById(id);
+let quickTimer=null, quickOrder=2000, customAudio=null;
 let connected=false;
 const fields=['storeName','sourceName','minPrice','maxPrice','order','maxItems','interval'];
 const notice=(message,error=false)=>{const el=$('notice');el.className='notice'+(error?' error':'');el.textContent=message;};
@@ -25,9 +26,19 @@ $('enable').onclick=()=>doWork(async()=>{
  await api('subscribe',{subscription:sub.toJSON()});change(false,true);notice('Notifiche push abilitate! Premi “Invia notifica di prova”.');
 });
 $('test').onclick=()=>doWork(async()=>{const result=await api('test',{settings:values()});fill(result.settings);notice('Push di prova inviata! Controlla le notifiche del telefono.');});
-$('start').onclick=()=>doWork(async()=>{const result=await api('save',{settings:{...values(),running:true}});fill(result.settings);change(true,true);notice('Invio automatico avviato. Prima notifica tra circa '+result.settings.interval+' minuti; il cron può introdurre fino a circa 1 minuto di ritardo.');});
+$('diagnose').onclick=()=>doWork(async()=>{const r=await api('diagnose');const next=r.nextAt?new Date(r.nextAt).toLocaleTimeString('it-IT'):'non pianificato';notice(`Timer: ${r.running?'ON':'OFF'} · Prossimo: ${next} · Ultimo controllo: ${r.last?JSON.stringify(r.last):'nessun dato dal cron'}`);});
+$('runNow').onclick=()=>doWork(async()=>{const r=await api('run-now');notice(r.sent?'Invio forzato riuscito dal backend.':'Invio fallito: '+(r.reason||'errore'),!r.sent);});
+$('saveLogo').onclick=()=>doWork(async()=>{const f=$('logoUpload').files[0];if(!f)throw Error('Seleziona un’immagine');if(f.size>350000)throw Error('Il file deve essere più piccolo di 350 KB');const data=await new Promise((res,rej)=>{const reader=new FileReader();reader.onload=()=>res(reader.result);reader.onerror=rej;reader.readAsDataURL(f)});const r=await api('upload-logo',{image:data});$('previewLogo').src=r.url;notice('Logo caricato. iOS può comunque usare l’icona originale della PWA.');});
+$('soundUpload').addEventListener('change',()=>{const f=$('soundUpload').files[0];if(customAudio)URL.revokeObjectURL(customAudio);customAudio=f?URL.createObjectURL(f):null;});
+function quickMessage(){const v=values(),min=Number(v.minPrice)||34.9,max=Number(v.maxPrice)||59.9;const price=(min+Math.random()*(Math.max(min,max)-min)).toFixed(2).replace('.',',');return {title:`Ordine #${quickOrder++} · DEMO`,body:`${price} €, 1 articolo da ${v.sourceName} · ${v.storeName} (simulato)`};}
+async function quickFire(){const n=quickMessage();const reg=await navigator.serviceWorker.ready;await reg.showNotification(n.title,{body:n.body,icon:'/.netlify/functions/logo',tag:'fast-demo-'+Date.now()});if(customAudio&&document.visibilityState==='visible'){const audio=new Audio(customAudio);audio.play().catch(()=>{});}}
+$('quickStart').onclick=()=>doWork(async()=>{if(!('Notification' in window)||Notification.permission!=='granted')throw Error('Attiva prima le notifiche push');if(quickTimer)clearInterval(quickTimer);await quickFire();quickTimer=setInterval(()=>{if(document.visibilityState==='visible')quickFire().catch(console.error)},Number($('quickInterval').value)*1000);notice('Modalità rapida attivata, funziona finché la PWA resta aperta.');});
+$('quickStop').onclick=()=>{if(quickTimer)clearInterval(quickTimer);quickTimer=null;notice('Modalità rapida fermata.');};
+$('start').onclick=()=>doWork(async()=>{const result=await api('save',{settings:{...values(),running:true}});fill(result.settings);change(true,true);notice('Timer automatico impostato. Prima notifica prevista tra circa '+result.settings.interval+' minuti; il cron può introdurre fino a circa 1 minuto di ritardo.');});
 $('stop').onclick=()=>doWork(async()=>{const result=await api('save',{settings:{...values(),running:false}});change(false,true);notice('Invii automatici disattivati.');});
 $('unsubscribe').onclick=()=>doWork(async()=>{const reg=await navigator.serviceWorker.getRegistration('/');const sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();await api('unsubscribe');change(false,false);notice('Dispositivo rimosso, notifiche ferme.');});
 fields.forEach(f=>$(f).addEventListener('input',refreshPreview));
 const saved=sessionStorage.getItem('sales-demo-pin');if(saved){$('pin').value=saved;$('connect').click();}
 refreshPreview();
+
+const logoImage=$('previewLogo');logoImage.onerror=()=>{logoImage.onerror=null;logoImage.src='/icons/icon-192.png'};
